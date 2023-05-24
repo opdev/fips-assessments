@@ -1,0 +1,34 @@
+---
+- apiVersion: operator.open-cluster-management.io/v1
+  kind: MultiClusterHub
+  metadata:
+    name: multiclusterhub
+    namespace: open-cluster-management
+  spec: {}
+- apiVersion: observability.open-cluster-management.io/v1beta1
+  kind: MultiClusterObservability
+  metadata:
+    name: observability
+  spec:
+    observabilityAddonSpec: {}
+    storageConfigObject:
+      metricObjectStorage:
+        key: thanos.yaml
+        name: thanos-object-storage
+- apiVersion: observability.open-cluster-management.io/v1beta1
+  kind: ObservabilityAddon
+  metadata:
+    name: observability-addon
+  spec:
+    enableMetrics: true
+    interval: 30
+- apiVersion: observability.open-cluster-management.io/v1beta2
+  kind: MultiClusterObservability
+  metadata:
+    name: observability
+  spec:
+    observabilityAddonSpec: {}
+    storageConfig:
+      metricObjectStorage:
+        key: thanos.yaml
+        name: thanos-object-storage
