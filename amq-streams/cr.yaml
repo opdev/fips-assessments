@@ -1,0 +1,51 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  ....
+  managedFields:
+    ..
+      manager: strimzi-cluster-operator
+      operation: Update
+      subresource: status
+      time: '2023-05-08T08:09:40Z'
+  name: my-cluster
+  namespace: mynamespace
+  ....
+spec:
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+  kafka:
+    config:
+      default.replication.factor: 3
+      inter.broker.protocol.version: '3.2'
+      min.insync.replicas: 2
+      offsets.topic.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      transaction.state.log.replication.factor: 3
+    listeners:
+      - name: plain
+        port: 9092
+        tls: false
+        type: internal
+      - name: tls
+        port: 9093
+        tls: true
+        type: internal
+    replicas: 3
+    storage:
+      type: ephemeral
+    version: 3.2.3
+  zookeeper:
+    replicas: 3
+    storage:
+      type: ephemeral
+status: # on fips enabled rosa this is the error that you get, until you do the WA in https://access.redhat.com/documentation/en-us/red_hat_amq_streams/2.3/html-single/configuring_amq_streams_on_openshift/index#proc-configuring-fips-mode-cluster-operator-str
+  conditions:
+    - lastTransitionTime: '2023-05-08T08:09:40.357185Z'
+      message: >-
+        java.io.IOException: getPBEAlgorithmParameters failed:
+        PBEWithHmacSHA256AndAES_256 AlgorithmParameters not available
+      reason: RuntimeException
+      status: 'True'
+      type: NotReady
