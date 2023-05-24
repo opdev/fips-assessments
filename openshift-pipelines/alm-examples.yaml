@@ -1,0 +1,68 @@
+---
+- apiVersion: operator.tekton.dev/v1alpha1
+  kind: OpenShiftPipelinesAsCode
+  metadata:
+    name: pipelines-as-code
+  spec:
+    targetNamespace: openshift-pipelines
+- apiVersion: operator.tekton.dev/v1alpha1
+  kind: TektonAddon
+  metadata:
+    name: addon
+  spec:
+    targetNamespace: openshift-pipelines
+- apiVersion: operator.tekton.dev/v1alpha1
+  kind: TektonChain
+  metadata:
+    name: chain
+  spec:
+    targetNamespace: openshift-pipelines
+- apiVersion: operator.tekton.dev/v1alpha1
+  kind: TektonConfig
+  metadata:
+    name: config
+  spec:
+    addon:
+      params:
+      - name: clusterTasks
+        value: 'true'
+      - name: pipelineTemplates
+        value: 'true'
+      - name: communityClusterTasks
+        value: 'true'
+    params:
+    - name: createRbacResource
+      value: 'true'
+    profile: all
+    pruner:
+      keep: 100
+      resources:
+      - pipelinerun
+      - taskrun
+      schedule: 0 8 * * *
+    targetNamespace: openshift-pipelines
+- apiVersion: operator.tekton.dev/v1alpha1
+  kind: TektonHub
+  metadata:
+    name: hub
+  spec:
+    api:
+      catalogRefreshInterval: 30m
+- apiVersion: operator.tekton.dev/v1alpha1
+  kind: TektonInstallerSet
+  metadata:
+    name: foo
+  spec:
+    manifests: []
+- apiVersion: operator.tekton.dev/v1alpha1
+  kind: TektonPipeline
+  metadata:
+    name: pipeline
+  spec:
+    targetNamespace: openshift-pipelines
+- apiVersion: operator.tekton.dev/v1alpha1
+  kind: TektonTrigger
+  metadata:
+    name: trigger
+  spec:
+    targetNamespace: openshift-pipelines
