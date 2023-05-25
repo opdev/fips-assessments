@@ -1,0 +1,11 @@
+kind: Backup
+apiVersion: infinispan.org/v2alpha1
+metadata:
+  name: example-backup
+  namespace: openshift-operators
+spec:
+  cluster: example-infinispan
+  container:
+    cpu: 1000m
+    extraJvmOpts: '-Djava.property=me'
+    memory: 1Gi

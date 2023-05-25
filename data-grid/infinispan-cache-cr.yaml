@@ -1,0 +1,9 @@
+kind: Cache
+apiVersion: infinispan.org/v2alpha1
+metadata:
+  name: example-cache
+  namespace: openshift-operators
+spec:
+  clusterName: example-infinispan
+  name: mycache
+  templateName: org.infinispan.DIST_SYNC
