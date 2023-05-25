@@ -1,0 +1,38 @@
+kind: Infinispan
+apiVersion: infinispan.org/v1
+metadata:
+  name: example-infinispan
+  namespace: openshift-operators
+spec:
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: infinispan-pod
+                clusterName: example-infinispan
+                infinispan_cr: example-infinispan
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+  configListener:
+    enabled: true
+    logging:
+      level: info
+  container:
+    memory: 1Gi
+  replicas: 1
+  security:
+    endpointAuthentication: true
+    endpointEncryption:
+      certSecretName: example-infinispan-cert-secret
+      certServiceName: service.beta.openshift.io
+      clientCert: None
+      type: Service
+    endpointSecretName: example-infinispan-generated-secret
+  service:
+    replicationFactor: 2
+    type: Cache
+  upgrades:
+    type: Shutdown
+  version: 8.4.2-1
