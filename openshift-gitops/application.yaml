@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  creationTimestamp: "2023-05-25T17:24:31Z"
+  generation: 8
+  name: guestbook
+  namespace: openshift-gitops
+  resourceVersion: "645340"
+  uid: 8b15421f-3a23-41bc-826f-b6d528581d44
+spec:
+  destination:
+    namespace: guestbook
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: guestbook
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    targetRevision: HEAD
