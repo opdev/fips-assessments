@@ -1,16 +1,7 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
-  ....
-  managedFields:
-    ..
-      manager: strimzi-cluster-operator
-      operation: Update
-      subresource: status
-      time: '2023-05-08T08:09:40Z'
   name: my-cluster
-  namespace: mynamespace
-  ....
 spec:
   entityOperator:
     topicOperator: {}
