@@ -1,8 +1,7 @@
 apiVersion: wildfly.org/v1alpha1
 kind: WildFlyServer
 metadata:
-  name: quickstart-bootable-jar
+  name: eap7-app
 spec:
-  applicationImage: "quay.io/wildfly-quickstarts/wildfly-operator-quickstart:bootable-21.0"
-  replicas: 2
-  bootableJar: true
+  applicationImage: quay.io/rocrisp/example:v1
+  replicas: 1
