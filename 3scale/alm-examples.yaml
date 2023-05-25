@@ -1,0 +1,178 @@
+alm-examples: |-
+      [
+        {
+          "apiVersion": "apps.3scale.net/v1alpha1",
+          "kind": "APIManager",
+          "metadata": {
+            "name": "apimanager-sample"
+          },
+          "spec": {
+            "wildcardDomain": "example.com"
+          }
+        },
+        {
+          "apiVersion": "apps.3scale.net/v1alpha1",
+          "kind": "APIManagerBackup",
+          "metadata": {
+            "name": "apimanagerbackup-sample"
+          },
+          "spec": {
+            "backupDestination": {
+              "persistentVolumeClaim": {
+                "volumeName": "mypreexistingvolume"
+              }
+            }
+          }
+        },
+        {
+          "apiVersion": "apps.3scale.net/v1alpha1",
+          "kind": "APIManagerRestore",
+          "metadata": {
+            "name": "apimanagerrestore-sample"
+          },
+          "spec": {
+            "restoreSource": {
+              "persistentVolumeClaim": {
+                "claimSource": {
+                  "claimName": "mybackeduppvc"
+                }
+              }
+            }
+          }
+        },
+        {
+          "apiVersion": "capabilities.3scale.net/v1alpha1",
+          "kind": "Tenant",
+          "metadata": {
+            "name": "tenant-sample"
+          },
+          "spec": {
+            "email": "admin@example.com",
+            "masterCredentialsRef": {
+              "name": "system-seed"
+            },
+            "organizationName": "Example.com",
+            "passwordCredentialsRef": {
+              "name": "ecorp-admin-secret"
+            },
+            "systemMasterUrl": "https://master.example.com",
+            "tenantSecretRef": {
+              "name": "ecorp-tenant-secret",
+              "namespace": "operator-test"
+            },
+            "username": "admin"
+          }
+        },
+        {
+          "apiVersion": "capabilities.3scale.net/v1beta1",
+          "kind": "ActiveDoc",
+          "metadata": {
+            "name": "activedoc-from-url"
+          },
+          "spec": {
+            "activeDocOpenAPIRef": {
+              "url": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/examples/v3.0/petstore.json"
+            },
+            "name": "Operated ActiveDoc From URL"
+          }
+        },
+        {
+          "apiVersion": "capabilities.3scale.net/v1beta1",
+          "kind": "Backend",
+          "metadata": {
+            "name": "backend1-sample"
+          },
+          "spec": {
+            "name": "Operated Backend 1",
+            "privateBaseURL": "https://api.example.com",
+            "systemName": "backend1"
+          }
+        },
+        {
+          "apiVersion": "capabilities.3scale.net/v1beta1",
+          "kind": "CustomPolicyDefinition",
+          "metadata": {
+            "name": "custompolicydefinition-sample"
+          },
+          "spec": {
+            "name": "MyCustomPolicy",
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "configuration": {
+                "properties": {
+                  "someAttr": {
+                    "description": "Some attribute",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "name": "MyCustomPolicy",
+              "summary": "some summary",
+              "version": "0.0.1"
+            },
+            "version": "0.0.1"
+          }
+        },
+        {
+          "apiVersion": "capabilities.3scale.net/v1beta1",
+          "kind": "DeveloperAccount",
+          "metadata": {
+            "name": "developeraccount-simple-sample"
+          },
+          "spec": {
+            "orgName": "Ecorp"
+          }
+        },
+        {
+          "apiVersion": "capabilities.3scale.net/v1beta1",
+          "kind": "DeveloperUser",
+          "metadata": {
+            "name": "developeruser-admin-sample"
+          },
+          "spec": {
+            "developerAccountRef": {
+              "name": "developeraccount1"
+            },
+            "email": "myusername2@example.com",
+            "passwordCredentialsRef": {
+              "name": "mysecret"
+            },
+            "role": "admin",
+            "username": "myusername2"
+          }
+        },
+        {
+          "apiVersion": "capabilities.3scale.net/v1beta1",
+          "kind": "OpenAPI",
+          "metadata": {
+            "name": "openapi-from-url"
+          },
+          "spec": {
+            "openapiRef": {
+              "url": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/master/examples/v3.0/petstore.yaml"
+            }
+          }
+        },
+        {
+          "apiVersion": "capabilities.3scale.net/v1beta1",
+          "kind": "Product",
+          "metadata": {
+            "name": "product1-sample"
+          },
+          "spec": {
+            "name": "OperatedProduct 1"
+          }
+        },
+        {
+          "apiVersion": "capabilities.3scale.net/v1beta1",
+          "kind": "ProxyConfigPromote",
+          "metadata": {
+            "name": "proxyconfigpromote-sample"
+          },
+          "spec": {
+            "ProductCRName": "product1-sample",
+            "Production": true
+          }
+        }
+      ]
