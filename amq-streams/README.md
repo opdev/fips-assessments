@@ -1,6 +1,6 @@
 # AMQ Streams Operator
 
-Any `Kafka` CR from `alm-examples` can be used.
+Any `Kafka` CR from [alm-examples](./alm-examples.yaml) can be used.
 If the cluster has FIPS enabled, the flow will fail with the error described in the `status` of [CR shown here](./cr.yaml).
 
 Applying the [workaround described here][fips-jvm] on the controller, will allow the CR to succeed and the Kafka cluster to be created.
