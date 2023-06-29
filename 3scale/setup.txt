@@ -1,0 +1,37 @@
+Follow the following steps to set up your aws account before deploy 3scale operator and apicast operator on ROSA.
+
+1) set env variables. You need to adjust these values accordingly.
+export S3_BUCKET=jianrongzhang-3scale-bucket
+export REGION=us-east-1
+export S3_IAM_USER_NAME=jianrongzhang-3scale-user
+export S3_IAM_POLICY_NAME=jianrongzhang-3scale-s3-access
+export AWS_PAGER=""
+export PROJECT_NAME=3scale-project
+export CLUSTER_BASE_URL=apps.fipstest2.51ty.p1.openshiftapps.com
+2) Follow the steps in "Prepare AWS Account" in this doc https://mobb.ninja/docs/redhat/3scale/ to set up aws account.
+3) Deploy 3scale operator in project "3scale-project" via OLM. Create operator group first in this project.
+4) Deploy apicast operator in openshift-operators project.
+5) Create a secret for the APIManager CR.
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  creationTimestamp: null
+  name: aws-auth
+stringData:
+  AWS_ACCESS_KEY_ID: "$(echo $ACCESS_CREDS | cut -f 1)"
+  AWS_SECRET_ACCESS_KEY: "$(echo $ACCESS_CREDS | cut -f 2)"
+  AWS_BUCKET: "$S3_BUCKET"
+  AWS_REGION: "$REGION"
+type: Opaque
+EOF
+6) Then you can deploy the 3scale API Management solution using APIManager CR 
+
+7) Once APIManager CR's status condition type "Available" becomes "True", obtain the credentials for the 3scale admin portal:
+oc get secret system-seed -o jsonpath={.data.ADMIN_USER} | base64 -d
+oc get secret system-seed -o jsonpath={.data.ADMIN_PASSWORD} | base64 -d
+8) Log into the 3Scale Admin portal (located at https://3scale-admin.3scale.${CLUSTER_BASE_URL}. 
+9) In the Admin portal, go to Dashbords -> Account Settings to generate an access token with read-write access.
+10) create a secret for apicast:
+oc create secret generic 3scaleportal --from-literal=AdminPortalURL=https://access-token@3scale-admin.3scale.${CLUSTER_BASE_URL}
+11) create apicast CRs.
