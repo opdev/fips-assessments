@@ -1,13 +1,22 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: guestbook
+  name: app-spring-petclinic
+  namespace: openshift-gitops
 spec:
   destination:
-    namespace: guestbook
+    namespace: test-gitops
     server: https://kubernetes.default.svc
   project: default
   source:
-    path: guestbook
-    repoURL: https://github.com/argoproj/argocd-example-apps.git
-    targetRevision: HEAD
+    directory:
+      recurse: true
+    path: app
+    repoURL: https://github.com/redhat-developer/openshift-gitops-getting-started.git
+    targetRevision: main
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    automated:
+      prune: true
+      selfHeal: true

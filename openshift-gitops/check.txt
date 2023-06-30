@@ -1,0 +1,4 @@
+
+1) Before the CRs are created, first create an OpenShift project test-project.
+2) The ArgoCD instance argocd should have status.phase set to "Available"
+3) The application.argoproj.io instance app-spring-petclinic should have sync.status set to "Synced"
