@@ -1,0 +1,45 @@
+1) Check knative eventing status:
+kind: KnativeServing
+metadata:
+  name: knative-serving
+
+Conditions:
+type: Ready
+status: "True"
+
+2) Check KnativeServing status:
+kind: KnativeServing
+metadata:
+  name: knative-serving
+
+Conditions:
+type: Ready
+status: "True"
+
+3) Check Service status:
+oc describe service.serving.knative.dev/hello
+
+Conditions:
+type: Ready
+status: "True"
+type:   RoutesReady
+status: "True"
+
+Note that there is no pod running, but a message sent to the status.URL will cause a pod to get created, and response sent back to the user and then the pod will be terminated automatically.
+For instance:
+ curl https://hello-jianrong.apps.fipstest.sivw.p1.openshiftapps.com
+Hello Serverless!
+
+4) Check Service status:
+oc describe service.serving.knative.dev/hello-autoscale
+
+Conditions:
+type: Ready
+status: "True"
+type:   RoutesReady
+status: "True"
+
+Note that there is no pod running, but a message sent to the status.URL will cause one or more pods to get created, and response sent back to the user and then the pod will be terminated automatically.
+If a large number of requests are sent in parallel, more pods are started to serve the requests and then scaled down to zero.
+
+

@@ -1,0 +1,16 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: hello-autoscale
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/min-scale: "0"
+        autoscaling.knative.dev/max-scale: "20"
+    spec:
+      containers:
+        - image: quay.io/jianrzha/go-http-server:1.0.0
+          env:
+            - name: RESPONSE
+              value: "Hello Serverless!"
