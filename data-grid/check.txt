@@ -1,0 +1,5 @@
+Expected CR status:
+1) example-infinispan-datagrid:  status condition type: WellFormed, status: True
+2) example-infinispan:  status condition type: WellFormed, status: True
+3) example-backup: status.phase: Succeeded
+4) example-batch-inline: status.phase: Succeeded
