@@ -1,0 +1,10 @@
+1) After OpenShift Pipelines operator is deployed via OLM, create a new project pipelines-tutorial
+oc new-project pipelines-tutorial
+and verify that a service account "pipline" has been created in this project.
+2) This test uses a sample application that includes a [frontend](https://github.com/jianrongzhang89/pipelines-vote-ui) and [backend](https://github.com/jianrongzhang89/pipelines-vote-api).
+3) Deploy the pipeline and pipelineruns using the .yaml files in this directory.
+4) After several minutes, the two pipelinerun CRs should have status condition type "Succeeded" with value "True".
+oc get pipelineruns
+NAME                           SUCCEEDED   REASON      STARTTIME   COMPLETIONTIME
+build-deploy-api-pipelinerun   True        Succeeded   23m         20m
+build-deploy-ui-pipelinerun    True        Succeeded   23m         20m
