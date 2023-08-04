@@ -1,0 +1,112 @@
+---
+- name: Test ArgoCD with Application
+  block:
+    # 1. Create Test Project
+    - name: Create test gitops namespace
+      kubernetes.core.k8s:
+        name: test-gitops
+        api_version: v1
+        kind: Namespace
+        state: present
+    # 2. Testing argocd Instance
+    - name: Create argocd
+      kubernetes.core.k8s:
+        name: argocd
+        namespace: test-gitops
+        api_version: argoproj.io/v1alpha1
+        kind: ArgoCD
+        definition: "{{ lookup('ansible.builtin.template', '../templates/argocd.yml.j2') }}"
+        state: present
+    - name: Wait until argocd is available
+      kubernetes.core.k8s_info:
+        name: argocd
+        namespace: test-gitops
+        api_version: argoproj.io/v1alpha1
+        kind: ArgoCD
+      register: argocd
+      until: argocd.resources[0].status.phase is defined and argocd.resources[0].status.phase == "Available"
+      retries: 10
+      delay: 10
+    # 2 - testing application
+    - name: Create argocd application
+      kubernetes.core.k8s:
+        name: app-spring-petclinic
+        namespace: openshift-gitops
+        api_version: argoproj.io/v1alpha1
+        kind: Application
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+          spec:
+            destination:
+              namespace: openshift-gitops
+              server: https://kubernetes.default.svc
+            project: default
+            source:
+              directory:
+                recurse: true
+              path: app
+              repoURL: https://github.com/redhat-developer/openshift-gitops-getting-started.git
+              targetRevision: main
+            syncPolicy:
+              syncOptions:
+                - CreateNamespace=true
+              automated:
+                prune: true
+                selfHeal: true
+          state: present
+    - name: Wait until application is synced
+      kubernetes.core.k8s_info:
+        name: app-spring-petclinic
+        namespace: openshift-gitops
+        api_version: argoproj.io/v1alpha1
+        kind: Application
+      register: app
+      until: app.resources[0].status.sync.status is defined and app.resources[0].status.sync.status == "Synced"
+      retries: 10
+      delay: 10
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Error testing argocd with application. Err: {{ ansible_failed_result }}"
+  always:
+    - name: Report result
+      ansible.builtin.set_fact:
+        assessment_result: "{{ 'fail' if ansible_failed_result is defined else 'pass' }}"
+- name: Clean Up resources
+  block:
+    - name: Delete argocd application
+      kubernetes.core.k8s:
+        name: app-spring-petclinic
+        namespace: openshift-gitops
+        api_version: argoproj.io/v1alpha1
+        kind: Application
+        state: absent
+        wait: true
+    - name: Delete argocd
+      kubernetes.core.k8s:
+        name: argocd
+        namespace: test-gitops
+        api_version: argoproj.io/v1alpha1
+        kind: ArgoCD
+        state: absent
+        wait: true
+    - name: Delete test gitops namespace
+      kubernetes.core.k8s:
+        name: test-gitops
+        api_version: v1
+        kind: Namespace
+        state: absent
+        wait: true
+    - name: Delete openshift-gitops namespace
+      kubernetes.core.k8s:
+        name: openshift-gitops
+        api_version: v1
+        kind: Namespace
+        state: absent
+        wait: true
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Error cleaning up argocd with application. Err: {{ ansible_failed_result }}"
