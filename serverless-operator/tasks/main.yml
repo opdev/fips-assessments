@@ -1,0 +1,256 @@
+---
+- name: Setting Up Results Var
+  ansible.builtin.set_fact:
+    test_result: "pass"
+# 1. Testing knative eventing
+- name: Testing Knative eventing
+  block:
+    - name: Create knative eventing
+      kubernetes.core.k8s:
+        name: knative-eventing
+        namespace: knative-eventing
+        api_version: operator.knative.dev/v1beta1
+        kind: KnativeEventing
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+        state: present
+    - name: Test knative eventing conditions type Ready
+      kubernetes.core.k8s_info:
+        namespace: knative-eventing
+        name: knative-eventing
+        api_version: operator.knative.dev/v1beta1
+        kind: knativeeventing
+        wait: true
+        wait_condition:
+          status: "True"
+          type: "Ready"
+        wait_timeout: 90
+      register: knative_eventing
+      failed_when: (knative_eventing.resources[0].status.conditions | selectattr('type', 'search', 'Ready') | list | last).status != "True"
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Knative eventing failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        test_result: "failed"
+# 2. Testing knative serving
+- name: Testing Knative Serving
+  block:
+    - name: Create knative serving
+      kubernetes.core.k8s:
+        name: knative-serving
+        namespace: knative-serving
+        api_version: operator.knative.dev/v1beta1
+        kind: KnativeServing
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+        state: present
+    - name: Test knative serving conditions type Ready
+      kubernetes.core.k8s_info:
+        namespace: knative-serving
+        name: knative-serving
+        api_version: operator.knative.dev/v1beta1
+        kind: knativeserving
+        wait: true
+        wait_condition:
+          status: "True"
+          type: "Ready"
+        wait_timeout: 90
+      register: knative_serving
+      failed_when: (knative_serving.resources[0].status.conditions | selectattr('type', 'search', 'Ready') | list | last).status != "True"
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Knative serving failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        test_result: "failed"
+# 3. Testing knative service
+- name: Testing knative service
+  block:
+    - name: Create knative hello service
+      kubernetes.core.k8s:
+        name: hello
+        namespace: knative-serving
+        api_version: serving.knative.dev/v1
+        kind: Service
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+          spec:
+            template:
+              spec:
+                containers:
+                  - image: docker.io/openshift/hello-openshift
+                    env:
+                      - name: RESPONSE
+                        value: "Hello Serverless!"
+        state: present
+    - name: Get hello service Conditions "Ready"
+      kubernetes.core.k8s_info:
+        namespace: knative-serving
+        name: hello
+        api_version: serving.knative.dev/v1
+        kind: Service
+        wait: true
+        wait_condition:
+          status: "True"
+          type: "Ready"
+        wait_timeout: 90
+    - name: Get hello service Conditions "RoutesReady"
+      kubernetes.core.k8s_info:
+        namespace: knative-serving
+        name: hello
+        api_version: serving.knative.dev/v1
+        kind: Service
+        wait: true
+        wait_condition:
+          status: "True"
+          type: "RoutesReady"
+        wait_timeout: 90
+      register: service
+      failed_when: >
+        ((service.resources[0].status.conditions | selectattr('type', 'search', 'Ready') | list | last).status != "True" or
+        (service.resources[0].status.conditions | selectattr('type', 'search', 'RoutesReady') | list | last).status != "True")
+    - name: Check hello service - must return hello serverless
+      ansible.builtin.uri:
+        url: "{{ service.resources[0].status.url }}"
+        return_content: true
+        validate_certs: false
+      register: hello_msg
+      failed_when: "'Hello Serverless!' not in hello_msg.content"
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Knative service failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        test_result: "failed"
+# 4. Test auto-scale service
+- name: Testing knative service auto-scale
+  block:
+    - name: Create knative hello-autoscale service
+      kubernetes.core.k8s:
+        api_version: serving.knative.dev/v1
+        kind: Service
+        name: hello-autoscale
+        namespace: knative-serving
+        definition:
+          spec:
+            template:
+              metadata:
+                annotations:
+                  autoscaling.knative.dev/min-scale: "0"
+                  autoscaling.knative.dev/max-scale: "20"
+              spec:
+                containers:
+                  - image: quay.io/jianrzha/go-http-server:1.0.0
+                    env:
+                      - name: RESPONSE
+                        value: "Hello Serverless!"
+    - name: Get hello-autoscale service Conditions "Ready"
+      kubernetes.core.k8s_info:
+        namespace: knative-serving
+        name: hello-autoscale
+        api_version: serving.knative.dev/v1
+        kind: Service
+        wait: true
+        wait_condition:
+          status: "True"
+          type: "Ready"
+        wait_timeout: 90
+    - name: Get hello-autoscale service Conditions "RoutesReady"
+      kubernetes.core.k8s_info:
+        namespace: knative-serving
+        name: hello-autoscale
+        api_version: serving.knative.dev/v1
+        kind: Service
+        wait: true
+        wait_condition:
+          status: "True"
+          type: "RoutesReady"
+        wait_timeout: 90
+      register: service_autoscale
+      failed_when: >
+          ((service_autoscale.resources[0].status.conditions | selectattr('type', 'search', 'Ready') | list | last).status != "True" or
+          (service_autoscale.resources[0].status.conditions | selectattr('type', 'search', 'RoutesReady') | list | last).status != "True")
+    - name: Check hello service autoscale - must return Hello world from sample HTTP server
+      ansible.builtin.uri:
+        url: "{{ service_autoscale.resources[0].status.url }}"
+        return_content: true
+        validate_certs: false
+      register: autoscale_hello_msg
+      failed_when: "'Hello world' not in autoscale_hello_msg.content"
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Knative service auto-scale failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        test_result: "failed"
+- name: Clean Up knative hello-autoscale service
+  block:
+    - name: Delete knative hello-autoscale service
+      kubernetes.core.k8s:
+        api_version: serving.knative.dev/v1
+        kind: Service
+        name: hello-autoscale
+        namespace: knative-serving
+        state: absent
+        wait: true
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Error: Couldn't delete knative service hello-autoscale"
+- name: Clean Up knative hello service
+  block:
+    - name: Delete knative hello service
+      kubernetes.core.k8s:
+        name: hello
+        namespace: knative-serving
+        api_version: serving.knative.dev/v1
+        kind: Service
+        state: absent
+        wait: true
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Error: Couldn't delete knative service hello"
+- name: Clean Up knative serving
+  block:
+    - name: Delete knative serving
+      kubernetes.core.k8s:
+        name: knative-serving
+        namespace: knative-serving
+        api_version: operator.knative.dev/v1beta1
+        kind: KnativeServing
+        state: absent
+        wait: true
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Error: Couldn't delete knative serving"
+- name: Clean Up knative eventing
+  block:
+    - name: Delete knative eventing
+      kubernetes.core.k8s:
+        name: knative-eventing
+        namespace: knative-eventing
+        api_version: operator.knative.dev/v1beta1
+        kind: KnativeEventing
+        state: absent
+        wait: true
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Error: Couldn't delete knative eventing"
+# print pass or failed according to test_result fact variable
+- name: Openshift-Serverless Results
+  ansible.builtin.debug:
+    msg: "{% if test_result == 'pass' %} PASS {% else %} FAILED {% endif %}"
