@@ -194,6 +194,9 @@
     - name: Register failed tests
       ansible.builtin.set_fact:
         test_result: "failed"
+- name: Create result
+  ansible.builtin.set_fact:
+    assessment_result: "{{ test_result }}"
 - name: Clean Up knative hello-autoscale service
   block:
     - name: Delete knative hello-autoscale service
