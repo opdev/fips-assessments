@@ -1,0 +1,323 @@
+---
+- name: Setting Up Results Var
+  ansible.builtin.set_fact:
+    test_result: "pass"
+# 1. Testing Infinispan Datagrid
+- name: Testing Infinispan Datagrid
+  block:
+    - name: Create Infinispan Datagrid
+      kubernetes.core.k8s:
+        name: example-infinispan-datagrid
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v1
+        kind: Infinispan
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+          spec:
+            replicas: 3
+            service:
+              type: DataGrid
+    - name: Test Infinispan DataGrid conditions type WellFormed
+      kubernetes.core.k8s_info:
+        namespace: "{{ target_namespace }}"
+        name: example-infinispan-datagrid
+        api_version: infinispan.org/v1
+        kind: Infinispan
+        wait: true
+        wait_condition:
+          status: "True"
+          type: "WellFormed"
+      register: infinispan_datagrid
+      failed_when: (infinispan_datagrid.resources[0].status.conditions | selectattr('type', 'search', 'WellFormed') | list | last).status != "True"
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Infinispan Datagrid failed. Err: {{ ansible_failed_result }}"
+# 2. Testing Infinispan Cache
+- name: Testing Infinispan Cache
+  block:
+    - name: Create Infinispan Cache
+      kubernetes.core.k8s:
+        name: example-infinispan-cache
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v1
+        kind: Infinispan
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+          spec:
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: infinispan-pod
+                          clusterName: example-infinispan-cache
+                          infinispan_cr: example-infinispan-cache
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
+            configListener:
+              enabled: true
+              logging:
+                level: info
+            container:
+              memory: 1Gi
+            replicas: 1
+            security:
+              endpointAuthentication: true
+              endpointEncryption:
+                certSecretName: example-infinispan-cache-cert-secret
+                certServiceName: service.beta.openshift.io
+                clientCert: None
+                type: Service
+              endpointSecretName: example-infinispan-cache-generated-secret
+            service:
+              replicationFactor: 2
+              type: Cache
+            upgrades:
+              type: Shutdown
+            version: 8.4.2-1
+    - name: Test Infinispan Cache conditions type WellFormed
+      kubernetes.core.k8s_info:
+        namespace: "{{ target_namespace }}"
+        name: example-infinispan-cache
+        api_version: infinispan.org/v1
+        kind: Infinispan
+        wait: true
+        wait_condition:
+          status: "True"
+          type: "WellFormed"
+      register: infinispan_cache
+      failed_when: (infinispan_cache.resources[0].status.conditions | selectattr('type', 'search', 'WellFormed') | list | last).status != "True"
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Infinispan Cache failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        test_result: "failed"
+# 3. Testing Backup Datagrid
+- name: Testing Backup Datagrid
+  block:
+    - name: Create Backup Datagrid
+      kubernetes.core.k8s:
+        name: example-backup-datagrid
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v2alpha1
+        kind: Backup
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+          spec:
+            cluster: example-infinispan-datagrid
+            container:
+              cpu: 1000m
+              extraJvmOpts: '-Djava.property=me'
+              memory: 1Gi
+        state: present
+    - name: Test Backup Datagrid phase Succeeded
+      kubernetes.core.k8s_info:
+        namespace: "{{ target_namespace }}"
+        name: example-backup-datagrid
+        api_version: infinispan.org/v2alpha1
+        kind: Backup
+        wait: true
+      retries: 30
+      delay: 10
+      register: infinispan_backup_datagrid
+      until: infinispan_backup_datagrid.resources[0].status.phase == "Succeeded"
+      failed_when: infinispan_backup_datagrid.resources[0].status.phase == "Failed"
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Backup Datagrid failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        test_result: "failed"
+# 4. Testing Backup Cache
+- name: Testing Backup Cache
+  block:
+    - name: Create Backup Cache
+      kubernetes.core.k8s:
+        name: example-backup-cache
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v2alpha1
+        kind: Backup
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+          spec:
+            cluster: example-infinispan-cache
+            container:
+              cpu: 1000m
+              extraJvmOpts: '-Djava.property=me'
+              memory: 1Gi
+        state: present
+    - name: Test Backup Cache phase Succeeded
+      kubernetes.core.k8s_info:
+        namespace: "{{ target_namespace }}"
+        name: example-backup-cache
+        api_version: infinispan.org/v2alpha1
+        kind: Backup
+        wait: true
+      retries: 30
+      delay: 10
+      register: infinispan_backup_cache
+      until: infinispan_backup_cache.resources[0].status.phase == "Succeeded"
+      failed_when: infinispan_backup_cache.resources[0].status.phase == "Failed"
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Backup Cache failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        test_result: "failed"
+# 5. Testing Batch Datagrid
+- name: Testing Batch Datagrid
+  block:
+    - name: Create Batch Datagrid
+      kubernetes.core.k8s:
+        name: example-batch-inline-datagrid
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v2alpha1
+        kind: Batch
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+          spec:
+            cluster: example-infinispan-datagrid
+            config: |
+              create cache --template=org.infinispan.DIST_SYNC mycache
+              put --cache=mycache hello world
+              put --cache=mycache hola mundo
+        state: present
+    - name: Test Batch Datagrid phase Succeeded
+      kubernetes.core.k8s_info:
+        namespace: "{{ target_namespace }}"
+        name: example-batch-inline-datagrid
+        api_version: infinispan.org/v2alpha1
+        kind: Batch
+        wait: true
+      retries: 30
+      delay: 10
+      register: infinispan_batch_datagrid
+      until: infinispan_batch_datagrid.resources[0].status.phase == "Succeeded"
+      failed_when: infinispan_batch_datagrid.resources[0].status.phase == "Failed"
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Batch Datagrid failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        test_result: "failed"
+# 6. Testing Batch Cache
+- name: Testing Batch Cache
+  block:
+    - name: Create Batch Cache
+      kubernetes.core.k8s:
+        name: example-batch-inline-cache
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v2alpha1
+        kind: Batch
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+          spec:
+            cluster: example-infinispan-cache
+            config: |
+              create cache --template=org.infinispan.DIST_SYNC mycache
+              put --cache=mycache hello world
+              put --cache=mycache hola mundo
+        state: present
+    - name: Test Batch Cache phase Succeeded
+      kubernetes.core.k8s_info:
+        namespace: "{{ target_namespace }}"
+        name: example-batch-inline-cache
+        api_version: infinispan.org/v2alpha1
+        kind: Batch
+        wait: true
+      retries: 30
+      delay: 10
+      register: infinispan_batch_cache
+      until: infinispan_batch_cache.resources[0].status.phase == "Succeeded"
+      failed_when: infinispan_batch_cache.resources[0].status.phase == "Failed"
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Batch Cache failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        test_result: "failed"
+- name: Create result
+  ansible.builtin.set_fact:
+    assessment_result: "{{ test_result }}"
+# CleanUp Tasks
+- name: CleanUp Tasks
+  block:
+    - name: Delete Infinispan Datagrid
+      kubernetes.core.k8s:
+        name: example-infinispan-datagrid
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v1
+        kind: Infinispan
+        state: absent
+        wait: true
+    - name: Delete Infinispan Cache
+      kubernetes.core.k8s:
+        name: example-infinispan-cache
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v1
+        kind: Infinispan
+        state: absent
+        wait: true
+    - name: Delete Backup Datagrid
+      kubernetes.core.k8s:
+        name: example-backup-datagrid
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v2alpha1
+        kind: Backup
+        state: absent
+        wait: true
+    - name: Delete Backup Cache
+      kubernetes.core.k8s:
+        name: example-backup-cache
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v2alpha1
+        kind: Backup
+        state: absent
+        wait: true
+    - name: Delete Batch Datagrid
+      kubernetes.core.k8s:
+        name: example-batch-inline-datagrid
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v2alpha1
+        kind: Batch
+        state: absent
+        wait: true
+    - name: Delete Batch Cache
+      kubernetes.core.k8s:
+        name: example-batch-inline-cache
+        namespace: "{{ target_namespace }}"
+        api_version: infinispan.org/v2alpha1
+        kind: Batch
+        state: absent
+        wait: true
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Cleanup failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        test_result: "failed"
+# print pass or failed according to test_result fact variable
+- name: Datagrid Results
+  ansible.builtin.debug:
+    msg: "{% if test_result == 'pass' %} PASS {% else %} FAILED {% endif %}"
