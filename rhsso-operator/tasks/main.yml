@@ -1,0 +1,44 @@
+---
+- name: Create keycloak CR in target_namespace
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ target_namespace }}"
+    definition:
+      apiVersion: keycloak.org/v1alpha1
+      kind: Keycloak
+      metadata:
+        name: example-keycloak
+        labels:
+          app: sso
+      spec:
+        instances: 1
+        externalAccess:
+          enabled: true
+- name: Install and report
+  block:
+    - name: Wait for install
+      kubernetes.core.k8s_info:
+        api_version: keycloak.org/v1alpha1
+        kind: Keycloak
+        name: example-keycloak
+        namespace: "{{ target_namespace }}"
+      register: result
+      until: result.resources[0].status.ready is defined and result.resources[0].status.ready == true
+      retries: 30
+      delay: 10
+      failed_when: result.resources[0].status.ready is not defined or result.resources[0].status.ready == false
+      ignore_errors: true
+  always:
+    - name: Report result
+      ansible.builtin.set_fact:
+        assessment_result: "{{ 'pass' if (result.resources[0].status.ready is defined and result.resources[0].status.ready == true) else 'fail' }}"
+- name: Clean up operand
+  kubernetes.core.k8s:
+    state: absent
+    api_version: keycloak.org/v1alpha1
+    kind: Keycloak
+    name: example-keycloak
+    namespace: "{{ target_namespace }}"
+    wait: true
+    wait_timeout: 60
+    wait_sleep: 5
