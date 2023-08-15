@@ -1,0 +1,4 @@
+---
+- name: Set up results var (default to pass)
+  ansible.builtin.set_fact:
+    test_result: "pass"
