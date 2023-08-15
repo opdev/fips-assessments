@@ -1,0 +1,52 @@
+---
+- name: Edit the CSV to disable FIPS_MODE
+  kubernetes.core.k8s:
+    state: patched
+    namespace: "{{ install_namespace }}"
+    name: "{{ channel.currentCSV }}"
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: ClusterServiceVersion
+      spec:
+        install:
+          deployments:
+            - name: amq-streams-cluster-operator-v2.4.0-2
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: strimzi-cluster-operator
+                        env:
+                          - name: FIPS_MODE
+                            value: disabled
+- name: Install and report
+  block:
+    - name: Create kafka CR in target_namespace and wait
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ target_namespace }}"
+        template:
+          path: ../templates/kafka.yml.j2
+        wait: true
+        wait_condition:
+          status: 'True'
+          type: Ready
+        wait_sleep: 30
+        wait_timeout: 600
+      register: amq_result
+  always:
+    - name: Print result
+      ansible.builtin.debug:
+        var: amq_result
+    - name: Report result
+      ansible.builtin.set_fact:
+        assessment_result: "{{ 'pass' if (amq_result.failed is defined and not amq_result.failed) else 'fail' }}"
+- name: Clean up operand
+  kubernetes.core.k8s:
+    state: absent
+    namespace: "{{ target_namespace }}"
+    template:
+      path: ../templates/kafka.yml.j2
+    wait: true
+    wait_sleep: 30
+    wait_timeout: 600
