@@ -1,0 +1,35 @@
+---
+- name: Install and report
+  block:
+    - name: Create multiclusterhub CR in target_namespace and wait
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ target_namespace }}"
+        definition:
+          apiVersion: operator.open-cluster-management.io/v1
+          kind: MultiClusterHub
+          metadata:
+            name: multiclusterhub
+          spec: {}
+        wait: true
+        wait_condition:
+          reason: ComponentsAvailable
+          status: 'True'
+          type: Complete
+        wait_sleep: 30
+        wait_timeout: 600
+      register: acm_result
+  always:
+    - name: Report result
+      ansible.builtin.set_fact:
+        assessment_result: "{{ 'pass' if (acm_result.result.status.phase is defined and acm_result.result.status.phase == 'Running') else 'fail' }}"
+- name: Clean up operand
+  kubernetes.core.k8s:
+    state: absent
+    api_version: operator.open-cluster-management.io/v1
+    kind: MultiClusterHub
+    name: multiclusterhub
+    namespace: "{{ target_namespace }}"
+    wait: true
+    wait_sleep: 30
+    wait_timeout: 600
