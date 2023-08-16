@@ -1,0 +1,68 @@
+---
+- name: Setting Up Results Var
+  ansible.builtin.set_fact:
+    assessment_result: "pass"
+# 1. Testing checluster
+- name: Testing Checluster
+  block:
+    - name: Create CheCluster Dashboard
+      kubernetes.core.k8s:
+        name: example-checluster
+        namespace: "{{ target_namespace }}"
+        api_version: org.eclipse.che/v2
+        kind: CheCluster
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+          spec:
+            components:
+              pluginRegistry:
+                deployment:
+                  containers:
+                    - image: registry.redhat.io/devspaces/pluginregistry-rhel8@sha256:a95b61b3f5d44d14c1398b0674ad04fd61c07f75afad08e43c3a4d5513340176
+            containerRegistry: {}
+            devEnvironments: {}
+            gitServices: {}
+            networking: {}
+    - name: Test Checluster Dashboard status.chePhase is set to Active
+      kubernetes.core.k8s_info:
+        namespace: "{{ target_namespace }}"
+        name: example-checluster
+        api_version: org.eclipse.che/v2
+        kind: CheCluster
+        wait: true
+      register: checluster_info
+      retries: 30
+      delay: 50
+      until:
+        - checluster_info.resources | length > 0
+        - checluster_info.resources[0].status is defined
+        - checluster_info.resources[0].status.chePhase is defined
+        - checluster_info.resources[0].status.chePhase == "Active" 
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "CheCluster Dashboard failed to install. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        assessment_result: "fail"
+# CleanUp Tasks
+- name: CleanUp Tasks
+  block:
+    - name: Delete CheCluster
+      kubernetes.core.k8s:
+        name: example-checluster
+        namespace: "{{ target_namespace }}"
+        api_version: org.eclipse.che/v2
+        kind: CheCluster
+        state: absent
+        wait: true
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Cleanup failed. Err: {{ ansible_failed_result }}"
+# print pass or failed according to test_result fact variable
+- name: DevSpace Results
+  ansible.builtin.debug:
+    msg: "{% if assessment_result == 'pass' %} PASS {% else %} FAIL {% endif %}"
