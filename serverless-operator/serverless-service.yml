@@ -10,3 +10,4 @@ spec:
           env:
             - name: RESPONSE
               value: "Hello Serverless!"
+

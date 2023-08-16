@@ -46,7 +46,7 @@
   rescue:
     - name: Print when failed
       ansible.builtin.debug:
-        msg: "3Scale API Management failed. Err: {{ ansible_failed_result  }}"
+        msg: "3Scale API Management failed. Err: {{ ansible_failed_result }}"
     - name: Adding result to list
       ansible.builtin.set_fact:
         test_results: "{{ test_results + [false] }}"
@@ -76,7 +76,7 @@
   rescue:
     - name: Print when failed
       ansible.builtin.debug:
-        msg: "3Scale API Cast failed. Err: {{ ansible_failed_result  }}"
+        msg: "3Scale API Cast failed. Err: {{ ansible_failed_result }}"
     - name: Adding result to list
       ansible.builtin.set_fact:
         test_results: "{{ test_results + [false] }}"
@@ -104,14 +104,14 @@
   rescue:
     - name: Print when failed
       ansible.builtin.debug:
-        msg: "3Scale API Cast for Production failed. Err: {{ ansible_failed_result  }}"
+        msg: "3Scale API Cast for Production failed. Err: {{ ansible_failed_result }}"
     - name: Adding result to list
       ansible.builtin.set_fact:
         test_results: "{{ test_results + [false] }}"
 - name: Create result
   ansible.builtin.set_fact:
     assessment_result: "{{ 'pass' if (test_results is all) else 'fail' }}"
-#Cleanup tasks
+# Cleanup tasks
 - name: Clean up operand APIManager
   kubernetes.core.k8s:
     state: absent

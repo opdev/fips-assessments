@@ -3,3 +3,4 @@ kind: KnativeServing
 metadata:
   name: knative-serving
 spec: {}
+

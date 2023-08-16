@@ -9,3 +9,4 @@ spec:
     create cache --template=org.infinispan.DIST_SYNC mycache
     put --cache=mycache hello world
     put --cache=mycache hola mundo
+
