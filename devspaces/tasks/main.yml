@@ -39,7 +39,7 @@
         - checluster_info.resources | length > 0
         - checluster_info.resources[0].status is defined
         - checluster_info.resources[0].status.chePhase is defined
-        - checluster_info.resources[0].status.chePhase == "Active" 
+        - checluster_info.resources[0].status.chePhase == "Active"
   rescue:
     - name: Print when failed
       ansible.builtin.debug:

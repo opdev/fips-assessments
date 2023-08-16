@@ -9,3 +9,4 @@ spec:
     cpu: 1000m
     extraJvmOpts: '-Djava.property=me'
     memory: 1Gi
+

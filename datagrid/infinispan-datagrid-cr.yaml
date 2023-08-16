@@ -6,3 +6,4 @@ spec:
   replicas: 3
   service:
     type: DataGrid
+

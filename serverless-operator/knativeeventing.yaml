@@ -3,3 +3,4 @@ kind: KnativeEventing
 metadata:
   name: knative-eventing
 spec: {}
+

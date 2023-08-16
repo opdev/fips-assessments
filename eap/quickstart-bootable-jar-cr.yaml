@@ -5,3 +5,4 @@ metadata:
 spec:
   applicationImage: quay.io/opdev/eap-helloworld:v1
   replicas: 1
+

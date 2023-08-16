@@ -4,7 +4,7 @@ metadata:
   name: apply-manifests
 spec:
   workspaces:
-  - name: source
+    - name: source
   params:
     - name: manifest_dir
       description: The directory in source that contains yaml manifests
@@ -20,3 +20,4 @@ spec:
           echo Applying manifests in $(inputs.params.manifest_dir) directory
           oc apply -f $(inputs.params.manifest_dir)
           echo -----------------------------------
+

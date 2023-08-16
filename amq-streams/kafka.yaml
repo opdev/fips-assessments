@@ -31,7 +31,9 @@ spec:
     replicas: 3
     storage:
       type: ephemeral
-status: # on fips enabled rosa this is the error that you get, until you do the WA in https://access.redhat.com/documentation/en-us/red_hat_amq_streams/2.3/html-single/configuring_amq_streams_on_openshift/index#proc-configuring-fips-mode-cluster-operator-str
+# on fips enabled rosa this is the error that you get, until you do the WA in
+# https://access.redhat.com/documentation/en-us/red_hat_amq_streams/2.3/html-single/configuring_amq_streams_on_openshift/index#proc-configuring-fips-mode-cluster-operator-str
+status:
   conditions:
     - lastTransitionTime: '2023-05-08T08:09:40.357185Z'
       message: >-
