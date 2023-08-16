@@ -1,0 +1,62 @@
+---
+- name: Setting Up Results Var
+  ansible.builtin.set_fact:
+    assessment_result: "pass"
+# 1. Testing WildFlyServer
+- name: Testing WildFlyServer
+  block:
+    - name: Create WildFlyServer
+      kubernetes.core.k8s:
+        name: eap7-app
+        namespace: "{{ target_namespace }}"
+        api_version: wildfly.org/v1alpha1
+        kind: WildFlyServer
+        definition:
+          metadata:
+            labels:
+              opdev: opcap
+          spec:
+            applicationImage: quay.io/opdev/eap-helloworld:v1
+            replicas: 1
+    - name: Test JBoss EAP 7 on Red Hat OpenShift
+      kubernetes.core.k8s_info:
+        name: eap7-app
+        namespace: "{{ target_namespace }}"
+        api_version: wildfly.org/v1alpha1
+        kind: WildFlyServer
+        wait: true
+      register: wildfly_info
+      until:
+        - wildfly_info.resources | length > 0
+        - wildfly_info.resources[0].status is defined
+        - wildfly_info.resources[0].status.hosts is defined
+        - wildfly_info.resources[0].status.pods[0].state is defined
+        - wildfly_info.resources[0].status.pods[0].state == "ACTIVE"
+      retries: 3
+      delay: 10
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "WildFlyServer failed. Err: {{ ansible_failed_result }}"
+    - name: Register failed tests
+      ansible.builtin.set_fact:
+        assessment_result: "fail"
+# 2. Clean up tasks
+- name: CleanUp Tasks
+  block:
+    - name: Delete WildFlyServer
+      kubernetes.core.k8s:
+        name: eap7-app
+        namespace: "{{ target_namespace }}"
+        api_version: wildfly.org/v1alpha1
+        kind: WildFlyServer
+        state: absent
+        wait: true
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "Cleanup failed. Err: {{ ansible_failed_result }}"
+# print pass or failed according to assessment_results
+- name: WildFlyServer Results
+  ansible.builtin.debug:
+    msg: "{% if assessment_result == 'pass' %} PASS {% else %} FAILED {% endif %}"
