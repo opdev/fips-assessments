@@ -1,0 +1,154 @@
+---
+- name: Setting Up Results Var
+  ansible.builtin.set_fact:
+    test_results: []
+- name: Create Secret in target_namespace
+  block:
+    - name: Create Secret in target_namespace
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ target_namespace }}"
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: aws-auth
+          stringData:
+            AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+            AWS_BUCKET: ${AWS_BUCKET}
+            AWS_REGION: ${AWS_REGION}
+          type: Opaque
+    - name: Create APIManager in target_namespace
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ target_namespace }}"
+        definition:
+          apiVersion: apps.3scale.net/v1alpha1
+          kind: APIManager
+          metadata:
+            name: apimanager-sample
+          spec:
+            wildcardDomain: 3scale.${CLUSTER_BASE_URL}
+            system:
+              fileStorage:
+                simpleStorageService:
+                  configurationSecretRef:
+                    name: aws-auth
+      register: result
+      wait: true
+      wait_condition:
+        status: "True"
+        type: "Available"
+      retries: 5
+      delay: 5
+      failed_when: result.resources[0] is not defined
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "3Scale API Management failed. Err: {{ ansible_failed_result  }}"
+    - name: Adding result to list
+      ansible.builtin.set_fact:
+        test_results: "{{ test_results + [false] }}"
+- name: Create APICast
+  block:
+    - name: Create APICast for Staging in target_namespace
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ target_namespace }}"
+        definition:
+          apiVersion: apps.3scale.net/v1alpha1
+          kind: APIcast
+          metadata:
+            name: example-apicast-staging
+          spec:
+            deploymentEnvironment: staging
+            configurationLoadMode: lazy
+            adminPortalCredentialsRef:
+              name: 3scaleportal
+      register: result
+      wait: true
+      wait_condition:
+        ready: "True"
+      retries: 5
+      delay: 5
+      failed_when: result.resources[0] is not defined
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "3Scale API Cast failed. Err: {{ ansible_failed_result  }}"
+    - name: Adding result to list
+      ansible.builtin.set_fact:
+        test_results: "{{ test_results + [false] }}"
+- name: Install and report - APICast for production
+  block:
+    - name: Create APICast for Production in target_namespace
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ target_namespace }}"
+        definition:
+          apiVersion: apps.3scale.net/v1alpha1
+          kind: APIcast
+          metadata:
+            name: example-apicast-production
+          spec:
+            adminPortalCredentialsRef:
+              name: 3scaleportal
+      register: result
+      wait: true
+      wait_condition:
+        ready: "True"
+      retries: 5
+      delay: 5
+      failed_when: result.resources[0] is not defined
+  rescue:
+    - name: Print when failed
+      ansible.builtin.debug:
+        msg: "3Scale API Cast for Production failed. Err: {{ ansible_failed_result  }}"
+    - name: Adding result to list
+      ansible.builtin.set_fact:
+        test_results: "{{ test_results + [false] }}"
+- name: Create result
+  ansible.builtin.set_fact:
+    assessment_result: "{{ 'pass' if (test_results is all) else 'fail' }}"
+#Cleanup tasks
+- name: Clean up operand APIManager
+  kubernetes.core.k8s:
+    state: absent
+    api_version: apps.3scale.net/v1alpha1
+    kind: APIManager
+    name: apimanager-sample
+    namespace: "{{ target_namespace }}"
+    wait: true
+    wait_timeout: 60
+    wait_sleep: 5
+- name: Clean up operand APICast - Staging
+  kubernetes.core.k8s:
+    state: absent
+    api_version: apps.3scale.net/v1alpha1
+    kind: APIcast
+    name: example-apicast-staging
+    namespace: "{{ target_namespace }}"
+    wait: true
+    wait_timeout: 60
+    wait_sleep: 5
+- name: Clean up operand APICast - Production
+  kubernetes.core.k8s:
+    state: absent
+    api_version: apps.3scale.net/v1alpha1
+    kind: APIcast
+    name: example-apicast-production
+    namespace: "{{ target_namespace }}"
+    wait: true
+    wait_timeout: 60
+    wait_sleep: 5
+- name: Clean up secret
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Secret
+    name: aws-auth
+    namespace: "{{ target_namespace }}"
+    wait: true
+    wait_timeout: 60
+    wait_sleep: 5

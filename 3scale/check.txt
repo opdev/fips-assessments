@@ -1,3 +1,3 @@
-1) The status of APIManager apimanager-sample shall have contition "Available" set to "True".
+1) The status of APIManager apimanager-sample shall have condition "Available" set to "True".
 Also all deployments in the CR status must be in the list "ready".
 2) For the two apicast CRs, the corresponding pods must have "ready" status condition of "True".
