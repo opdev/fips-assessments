@@ -1,16 +1,10 @@
 ---
 - name: Testing Red Hat Advanced Cluster Security
   block:
-    - name: Create stackrox namespace
-      kubernetes.core.k8s:
-        name: stackrox
-        api_version: v1
-        kind: Namespace
-        state: present
     - name: Create stackrox central services
       kubernetes.core.k8s:
         name: stackrox-central-services
-        namespace: stackrox
+        namespace: "{{ target_namespace }}"
         api_version: platform.stackrox.io/v1alpha1
         kind: Central
         definition:
@@ -30,21 +24,28 @@
         state: present
     - name: Get Central Secret Password
       kubernetes.core.k8s_info:
-        namespace: stackrox
+        namespace: "{{ target_namespace }}"
         name: central-htpasswd
         api_version: v1
         kind: Secret
       register: central_secret
     - name: Get Central Endpoint
       kubernetes.core.k8s_info:
-        namespace: stackrox
+        namespace: "{{ target_namespace }}"
         name: central
         api_version: v1
         kind: Route
       register: route
     - name: Wait for central service to be fully available
-      ansible.builtin.wait_for:
-        timeout: 90
+      ansible.builtin.uri:
+        url: "https://{{ route.resources[0].spec.host }}:443/v1/ping"
+        follow_redirects: none
+        method: GET
+        validate_certs: false
+      register: _result
+      until: _result.status == 200
+      retries: 30
+      delay: 5 # Every 5 seconds
     - name: Generate init-bundle
       ansible.builtin.command:
         argv:
@@ -60,16 +61,16 @@
           - main-init-bundle
           - --output-secrets
           - "-"
-        register: roxctl_cmd
+      register: roxctl_cmd
     - name: Apply init bundle file
       kubernetes.core.k8s:
         apply: true
-        namespace: stackrox
-        src: /tmp/init_bundle.yml
+        namespace: "{{ target_namespace }}"
+        definition: "{{ roxctl_cmd.stdout | from_yaml_all }}"
     - name: Create stackrox secured cluster services
       kubernetes.core.k8s:
         name: stackrox-secured-cluster-services
-        namespace: stackrox
+        namespace: "{{ target_namespace }}"
         api_version: platform.stackrox.io/v1alpha1
         kind: SecuredCluster
         definition:
@@ -97,7 +98,7 @@
     - name: Delete stackrox secured cluster services
       kubernetes.core.k8s:
         name: stackrox-secured-cluster-services
-        namespace: stackrox
+        namespace: "{{ target_namespace }}"
         api_version: platform.stackrox.io/v1alpha1
         kind: SecuredCluster
         state: absent
@@ -105,16 +106,9 @@
     - name: Delete stackrox central services
       kubernetes.core.k8s:
         name: stackrox-central-services
-        namespace: stackrox
+        namespace: "{{ target_namespace }}"
         api_version: platform.stackrox.io/v1alpha1
         kind: Central
-        state: absent
-        wait: true
-    - name: Delete stackrox namespace
-      kubernetes.core.k8s:
-        name: stackrox
-        api_version: v1
-        kind: Namespace
         state: absent
         wait: true
     - name: Delete init bundle file
