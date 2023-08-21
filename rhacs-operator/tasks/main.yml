@@ -59,7 +59,8 @@
           - "{{ central_secret.resources[0].data.password | b64decode }}"
           - main-init-bundle
           - --output-secrets
-          - "/tmp/init_bundle.yml"
+          - "-"
+        register: roxctl_cmd
     - name: Apply init bundle file
       kubernetes.core.k8s:
         apply: true
