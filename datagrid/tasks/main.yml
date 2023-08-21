@@ -1,7 +1,7 @@
 ---
 - name: Setting Up Results Var
   ansible.builtin.set_fact:
-    test_result: "pass"
+    test_results: []
 # 1. Testing Infinispan Datagrid
 - name: Testing Infinispan Datagrid
   block:
@@ -19,22 +19,20 @@
             replicas: 3
             service:
               type: DataGrid
-    - name: Test Infinispan DataGrid conditions type WellFormed
-      kubernetes.core.k8s_info:
-        namespace: "{{ target_namespace }}"
-        name: example-infinispan-datagrid
-        api_version: infinispan.org/v1
-        kind: Infinispan
         wait: true
         wait_condition:
           status: "True"
           type: "WellFormed"
+        wait_sleep: 10
+        wait_timeout: 300
       register: infinispan_datagrid
-      failed_when: (infinispan_datagrid.resources[0].status.conditions | selectattr('type', 'search', 'WellFormed') | list | last).status != "True"
   rescue:
     - name: Print when failed
       ansible.builtin.debug:
         msg: "Infinispan Datagrid failed. Err: {{ ansible_failed_result }}"
+    - name: Add result to list
+      ansible.builtin.set_fact:
+        test_results: "{{ test_results + [false] }}"
 # 2. Testing Infinispan Cache
 - name: Testing Infinispan Cache
   block:
@@ -81,25 +79,20 @@
             upgrades:
               type: Shutdown
             version: 8.4.2-1
-    - name: Test Infinispan Cache conditions type WellFormed
-      kubernetes.core.k8s_info:
-        namespace: "{{ target_namespace }}"
-        name: example-infinispan-cache
-        api_version: infinispan.org/v1
-        kind: Infinispan
         wait: true
         wait_condition:
           status: "True"
           type: "WellFormed"
+        wait_sleep: 10
+        wait_timeout: 300
       register: infinispan_cache
-      failed_when: (infinispan_cache.resources[0].status.conditions | selectattr('type', 'search', 'WellFormed') | list | last).status != "True"
   rescue:
     - name: Print when failed
       ansible.builtin.debug:
         msg: "Infinispan Cache failed. Err: {{ ansible_failed_result }}"
-    - name: Register failed tests
+    - name: Add result to list
       ansible.builtin.set_fact:
-        test_result: "failed"
+        test_results: "{{ test_results + [false] }}"
 # 3. Testing Backup Datagrid
 - name: Testing Backup Datagrid
   block:
@@ -131,14 +124,16 @@
       delay: 10
       register: infinispan_backup_datagrid
       until: infinispan_backup_datagrid.resources[0].status.phase == "Succeeded"
-      failed_when: infinispan_backup_datagrid.resources[0].status.phase == "Failed"
+      failed_when: >
+        infinispan_backup_datagrid.resources[0].status.phase is not defined or
+        infinispan_backup_datagrid.resources[0].status.phase is not in ["Succeeded"]
   rescue:
     - name: Print when failed
       ansible.builtin.debug:
         msg: "Backup Datagrid failed. Err: {{ ansible_failed_result }}"
     - name: Register failed tests
       ansible.builtin.set_fact:
-        test_result: "failed"
+        test_results: "{{ test_results + [false] }}"
 # 4. Testing Backup Cache
 - name: Testing Backup Cache
   block:
@@ -170,14 +165,16 @@
       delay: 10
       register: infinispan_backup_cache
       until: infinispan_backup_cache.resources[0].status.phase == "Succeeded"
-      failed_when: infinispan_backup_cache.resources[0].status.phase == "Failed"
+      failed_when: >
+        infinispan_backup_cache.resources[0].status.phase is not defined or
+        infinispan_backup_cache.resources[0].status.phase is not in ["Succeeded"]
   rescue:
     - name: Print when failed
       ansible.builtin.debug:
         msg: "Backup Cache failed. Err: {{ ansible_failed_result }}"
     - name: Register failed tests
       ansible.builtin.set_fact:
-        test_result: "failed"
+        test_results: "{{ test_results + [false] }}"
 # 5. Testing Batch Datagrid
 - name: Testing Batch Datagrid
   block:
@@ -209,14 +206,16 @@
       delay: 10
       register: infinispan_batch_datagrid
       until: infinispan_batch_datagrid.resources[0].status.phase == "Succeeded"
-      failed_when: infinispan_batch_datagrid.resources[0].status.phase == "Failed"
+      failed_when: >
+        infinispan_batch_datagrid.resources[0].status.phase is not defined or
+        infinispan_batch_datagrid.resources[0].status.phase is not in ["Succeeded"]
   rescue:
     - name: Print when failed
       ansible.builtin.debug:
         msg: "Batch Datagrid failed. Err: {{ ansible_failed_result }}"
     - name: Register failed tests
       ansible.builtin.set_fact:
-        test_result: "failed"
+        test_results: "{{ test_results + [false] }}"
 # 6. Testing Batch Cache
 - name: Testing Batch Cache
   block:
@@ -248,17 +247,19 @@
       delay: 10
       register: infinispan_batch_cache
       until: infinispan_batch_cache.resources[0].status.phase == "Succeeded"
-      failed_when: infinispan_batch_cache.resources[0].status.phase == "Failed"
+      failed_when: >
+        infinispan_batch_cache.resources[0].status.phase is not defined or
+        infinispan_batch_cache.resources[0].status.phase is not in ["Succeeded"]
   rescue:
     - name: Print when failed
       ansible.builtin.debug:
         msg: "Batch Cache failed. Err: {{ ansible_failed_result }}"
     - name: Register failed tests
       ansible.builtin.set_fact:
-        test_result: "failed"
+        test_results: "{{ test_results + [false] }}"
 - name: Create result
   ansible.builtin.set_fact:
-    assessment_result: "{{ test_result }}"
+    assessment_result: "{{ 'pass' if (test_results is all) else 'fail' }}"
 # CleanUp Tasks
 - name: CleanUp Tasks
   block:
@@ -314,10 +315,7 @@
     - name: Print when failed
       ansible.builtin.debug:
         msg: "Cleanup failed. Err: {{ ansible_failed_result }}"
-    - name: Register failed tests
-      ansible.builtin.set_fact:
-        test_result: "failed"
 # print pass or failed according to test_result fact variable
 - name: Datagrid Results
   ansible.builtin.debug:
-    msg: "{% if test_result == 'pass' %} PASS {% else %} FAILED {% endif %}"
+    msg: "{{ 'PASS' if assessment_result == 'pass' else 'FAIL' }}"
