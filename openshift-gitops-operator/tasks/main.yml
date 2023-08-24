@@ -64,7 +64,7 @@
         kind: Application
       register: app
       until: app.resources[0].status.sync.status is defined and app.resources[0].status.sync.status == "Synced"
-      retries: 10
+      retries: 30
       delay: 10
   rescue:
     - name: Print when failed
