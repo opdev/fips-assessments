@@ -3,7 +3,7 @@
   kubernetes.core.k8s:
     state: patched
     namespace: "{{ install_namespace }}"
-    name: "{{ channel.currentCSV }}"
+    name: "{{ package_manifest.currentCSV }}"
     definition:
       apiVersion: operators.coreos.com/v1alpha1
       kind: ClusterServiceVersion
