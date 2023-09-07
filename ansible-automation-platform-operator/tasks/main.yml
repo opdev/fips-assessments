@@ -33,6 +33,7 @@
             admin_user: admin
             loadbalancer_protocol: http
             nodeport_port: 30080
+            web_extra_env: 'CSRF_TRUSTED_ORIGINS=[*]'
         state: present
     - name: Test AutomationController conditions type Running
       kubernetes.core.k8s_info:
