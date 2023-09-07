@@ -1,10 +1,7 @@
 ---
-- name: Setting Up Results Var
-  ansible.builtin.set_fact:
-    assessment_result: "pass"
-# 1. Testing AutomationController
 - name: Testing AutomationController
   block:
+    # 1. Testing AutomationController
     - name: Create AutomationController
       kubernetes.core.k8s:
         name: aap-test
@@ -27,74 +24,49 @@
             auto_upgrade: true
             task_privileged: false
             projects_storage_access_mode: ReadWriteMany
+            web_extra_env: |
+              - name: CSRF_TRUSTED_ORIGINS
+                value: "['*']"
             set_self_labels: true
             projects_persistence: false
             replicas: 1
             admin_user: admin
             loadbalancer_protocol: http
             nodeport_port: 30080
-            web_extra_env: 'CSRF_TRUSTED_ORIGINS=[*]'
         state: present
-    - name: Test AutomationController conditions type Running
-      kubernetes.core.k8s_info:
-        namespace: "{{ target_namespace }}"
-        name: aap-test
-        api_version: automationcontroller.ansible.com/v1beta1
-        kind: AutomationController
         wait: true
         wait_condition:
           status: "True"
           type: "Running"
-        wait_timeout: 300
+          reason: "Successful"
+        wait_timeout: 600
+        wait_sleep: 10
       register: automationcontroller
-      failed_when: (automationcontroller.resources[0].status.conditions | selectattr('type', 'search', 'Running') | list | last).status != "True"
-    - name: Test AutomationController conditions type Failure
-      kubernetes.core.k8s_info:
-        namespace: "{{ target_namespace }}"
-        name: aap-test
-        api_version: automationcontroller.ansible.com/v1beta1
-        kind: AutomationController
-        wait: true
-        wait_condition:
-          status: "False"
-          type: "Failure"
-        wait_timeout: 300
-      register: automationcontroller
-      failed_when: (automationcontroller.resources[0].status.conditions | selectattr('type', 'search', 'Failure') | list | last).status != "False"
-    - name: Test AutomationController conditions type Successful
-      kubernetes.core.k8s_info:
-        namespace: "{{ target_namespace }}"
-        name: aap-test
-        api_version: automationcontroller.ansible.com/v1beta1
-        kind: AutomationController
-        wait: true
-        wait_condition:
-          status: "True"
-          type: "Successful"
-        wait_timeout: 300
-      register: automationcontroller
-      failed_when: (automationcontroller.resources[0].status.conditions | selectattr('type', 'search', 'Failure') | list | last).status != "False"
+    # 2. Testing AAP Route
+    - name: Verify the AAP UI is available
+      ansible.builtin.uri:
+        url: "{{ automationcontroller.result.status.URL }}"
+        validate_certs: false
+      register: automationcontrollerurl
   rescue:
     - name: Print when failed
       ansible.builtin.debug:
         msg: "AutomationController failed. Err: {{ ansible_failed_result }}"
-    - name: Register failed tests
+  always:
+    - name: Set boolean result fact
       ansible.builtin.set_fact:
-        assessment_result: "fail"
-# 2. Testing AAP Route
-- name: Testing AAP UI
-  block:
-    - name: Verify the AAP UI is available
-      ansible.builtin.uri:
-        url: "{{ automationcontroller.resources[0].status.URL }}"
-        validate_certs: false
-  rescue:
-    - name: Print when failed
-      ansible.builtin.debug:
-        msg: "Testing AAP UI failed. Err: {{ ansible_failed_result }}"
-    - name: Register failed tests
+        ac_result: "{{ ((automationcontroller.result is not defined) or
+                       ((automationcontroller.result.status.conditions | selectattr('type', 'eq', 'Running') | list | last).status != 'True') or
+                       ((automationcontroller.result.status.conditions | selectattr('type', 'eq', 'Running') | list | last).reason != 'Successful') or
+                       ((automationcontroller.result.status.conditions | selectattr('type', 'eq', 'Failure') | list | last).status != 'False') or
+                       ((automationcontroller.result.status.conditions | selectattr('type', 'eq', 'Failure') | list | last).reason != '') or
+                       ((automationcontroller.result.status.conditions | selectattr('type', 'eq', 'Successful') | list | last).status != 'True') or
+                       ((automationcontroller.result.status.conditions | selectattr('type', 'eq', 'Successful') | list | last).reason != 'Successful') or
+                       (automationcontrollerurl.status is not defined) or
+                       (automationcontrollerurl.status != 200)) | bool }}"
+    - name: Report result
       ansible.builtin.set_fact:
-        assessment_result: "fail"
+        assessment_result: "{{ 'fail' if ac_result else 'pass' }}"
 # 3. Cleanup
 - name: Clean Up AutomationController
   block:
