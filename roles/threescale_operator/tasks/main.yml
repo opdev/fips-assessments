@@ -50,7 +50,10 @@
         # Usually the APIManager takes 2-3min to get the True status.
         wait_sleep: 10
         wait_timeout: 500
-      register: result
+    - name: Check connectivity to 3scale Admin UI
+      ansible.builtin.uri:
+        url: "https://3scale-admin.3scale.apps.{{ cluster_base_url }}"
+        validate_certs: false
     - name: Create Secret in target_namespace for APICast
       kubernetes.core.k8s:
         state: present
@@ -159,16 +162,6 @@
           type: "Available"
         wait_sleep: 5
         wait_timeout: 60
-      register: result
-    - name: Check connectivity with the APICast - Staging service
-      ansible.builtin.uri:
-        url: "https://api-3scale-apicast-staging.3scale.apps.{{ cluster_base_url }}"
-        validate_certs: false
-      register: result
-    - name: Check connectivity with the APICast - Production service
-      ansible.builtin.uri:
-        url: "https://api-3scale-apicast-production.3scale.apps.{{ cluster_base_url }}"
-        validate_certs: false
       register: result
   rescue:
     - name: Print when failed
