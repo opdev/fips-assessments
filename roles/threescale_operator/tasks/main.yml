@@ -50,6 +50,9 @@
         # Usually the APIManager takes 2-3min to get the True status.
         wait_sleep: 10
         wait_timeout: 500
+    - name: Pause for 1 minute for admin UI to become available
+      ansible.builtin.pause:
+        minutes: 1
     - name: Check connectivity to 3scale Admin UI
       ansible.builtin.uri:
         url: "https://3scale-admin.3scale.apps.{{ cluster_base_url }}"
