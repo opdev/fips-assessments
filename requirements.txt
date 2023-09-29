@@ -1,6 +1,6 @@
 ansible==8.4.0
 ansible-builder==3.0.0
-ansible-lint==6.20.0
-ansible-navigator==3.4.2
+ansible-lint==6.20.1
+ansible-navigator==3.5.0
 ansible-runner==2.3.4
 kubernetes==28.1.0
