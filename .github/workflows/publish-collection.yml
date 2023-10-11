@@ -1,0 +1,33 @@
+name: publish-collection
+on:
+  push:
+    branches:
+      - main  
+jobs:
+  build:
+    name: Publish Ansible Collection to Private Automation Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Fetch latest release version
+        uses: reloc8/action-latest-release-version@1.0.0
+        id: fetch-latest-release
+      - name: Set Env Tags
+        run: echo RELEASE_TAG=${{ steps.fetch-latest-release.outputs.latest-release || '0.0.1' }} >> $GITHUB_ENV
+      - name: set short sha
+        run: echo SHA_SHORT=$(git rev-parse --short HEAD) >> $GITHUB_ENV
+  
+
+      - name: Apply release tag to collection
+        run: yq e -i '.version = "${{ env.RELEASE_TAG }}+${{ env.SHA_SHORT }}"' galaxy.yml
+
+      - name: Install galaxy colletions
+        run: ansible-galaxy install -r requirements.yml
+
+      - name: Build collection
+        run: ansible-galaxy collection build -vvv
+
+      - name: Upload collection
+        run: ansible-galaxy collection publish -vvv --server "https://${{ secrets.HUB_HOST }}/api/galaxy/" --api-key "${{ secrets.HUB_TOKEN }}" "opdev-fips_assessments-${{ env.RELEASE_TAG }}+${{ env.SHA_SHORT }}.tar.gz"

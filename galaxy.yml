@@ -8,7 +8,7 @@ namespace: opdev
 name: fips_assessments
 
 # The version of the collection. Must be compatible with semantic versioning
-version: 1.0.0
+version: 0.0.1
 
 # The path to the Markdown (.md) readme file. This path is relative to the root of the collection
 readme: README.md
@@ -59,7 +59,7 @@ issues: http://github.com/opdev/fips-assessments/issues
 # artifact. A pattern is matched from the relative path of the file or directory of the collection directory. This
 # uses 'fnmatch' to match the files or directories. Some directories and files like 'galaxy.yml', '*.pyc', '*.retry',
 # and '.git' are always filtered. Mutually exclusive with 'manifest'
-build_ignore: []
+build_ignore: [.tekton, .ansible-lint, .github, .gitignore, OWNERS]
 
 # A dict controlling use of manifest directives used in building the collection artifact. The key 'directives' is a
 # list of MANIFEST.in style
