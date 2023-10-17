@@ -1,0 +1,6 @@
+galaxy_info:
+  author: Brad P. Crochet <brad@redhat.com>
+  role_name: rhacs_operator
+  description: Installing RHACS operator
+  license: GPL-2.0-or-later
+  min_ansible_version: "2.9.10"
