@@ -1,0 +1,6 @@
+galaxy_info:
+  author: Brad P. Crochet <brad@redhat.com>
+  role_name: datagrid
+  description: Installing Datagrid operator
+  license: GPL-2.0-or-later
+  min_ansible_version: "2.9.10"

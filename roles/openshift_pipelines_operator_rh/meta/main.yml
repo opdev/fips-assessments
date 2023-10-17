@@ -1,0 +1,6 @@
+galaxy_info:
+  author: Brad P. Crochet <brad@redhat.com>
+  role_name: openshift_pipelines_operator_rh
+  description: Installing OpenShift Pipelines operator
+  license: GPL-2.0-or-later
+  min_ansible_version: "2.9.10"
