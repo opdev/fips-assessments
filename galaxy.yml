@@ -8,7 +8,7 @@ namespace: opdev
 name: fips_assessments
 
 # The version of the collection. Must be compatible with semantic versioning
-version: 0.0.1
+version: 0.0.2
 
 # The path to the Markdown (.md) readme file. This path is relative to the root of the collection
 readme: README.md
@@ -17,7 +17,17 @@ readme: README.md
 # @nicks:irc/im.site#channel'
 authors:
   - Brad P. Crochet <brad@redhat.com>
-
+  - Matt Dorn <madorn@gmail.com>
+  - Melvin Hillsman <mhillsma@redhat.com>
+  - Igor Troyanovsky <itroyano@redhat.com>
+  - jianrongzhang89 <jianrongzhang89@gmail.com>
+  - Rose Crisp <rocrisp@redhat.com>
+  - Alexandre Menezes <adcmenezes@gmail.com>
+  - Yuri Sa <yurimsa@gmail.com>
+  - Manna Kong
+  - Sid Kattoju
+  - Josh Manning
+  - Yash Devan Oza <yoza@redhat.com>
 
 ### OPTIONAL but strongly recommended
 # A short summary description of the collection
