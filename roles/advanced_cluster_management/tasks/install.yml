@@ -1,0 +1,33 @@
+---
+- name: Install and report
+  block:
+    - name: Create open-cluster-management namespace
+      kubernetes.core.k8s:
+        name: open-cluster-management
+        api_version: v1
+        kind: Namespace
+        state: present
+    - name: Create multiclusterhub CR in target_namespace and wait
+      kubernetes.core.k8s:
+        state: present
+        namespace: "open-cluster-management"
+        definition:
+          apiVersion: operator.open-cluster-management.io/v1
+          kind: MultiClusterHub
+          metadata:
+            name: multiclusterhub
+          spec:
+            disableHubSelfManagement: true
+            availabilityConfig: Basic
+        wait: true
+        wait_condition:
+          reason: ComponentsAvailable
+          status: 'True'
+          type: Complete
+        wait_sleep: 30
+        wait_timeout: 600
+      register: acm_result
+  always:
+    - name: Report result
+      ansible.builtin.set_fact:
+        assessment_result: "{{ 'pass' if (acm_result.result.status.phase is defined and acm_result.result.status.phase == 'Running') else 'fail' }}"
