@@ -1,0 +1,17 @@
+---
+- name: Clean up operand
+  kubernetes.core.k8s:
+    state: absent
+    api_version: operator.open-cluster-management.io/v1
+    kind: MultiClusterHub
+    name: multiclusterhub
+    namespace: "open-cluster-management"
+    wait: true
+    wait_sleep: 30
+    wait_timeout: 600
+- name: Delete open-cluster-management namespace
+  kubernetes.core.k8s:
+    name: open-cluster-management
+    api_version: v1
+    kind: Namespace
+    state: absent
